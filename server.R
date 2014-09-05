@@ -17,8 +17,9 @@ shinyServer(function(input, output,session) {
 #     #input$loadFile
 #     plot(rnorm(10),rnorm(10))
 #   })
-  output$noise=renderText({
+
     
+  getpointlist<-reactive({
     rgblist=c("r","g","b")
     fname=input$fname
     imsource=read.bitmap(fname)
@@ -40,7 +41,7 @@ shinyServer(function(input, output,session) {
     #add x and y values, y changes most rapidly
     pointlist$y=-seq(1:imheight)
     pointlist$x=rep(seq(1:imwidth),each=imheight)
-    pointlist[,c("r","g","b")]=round(pointlist[,rgblist]*255)
+    pointlist[,rgblist]=round(pointlist[,rgblist]*255)
     #pointlist$rgb=apply(pointlist[,c("r","g","b")],1,merge_rgb) #5 sec
     #pointlist$rgb=apply(pointlist[,c("r","g","b")],1,sprintf,fmt="#%02x") #1 second
     pointlist$rgb=apply(pointlist[,rgblist],1,crossprod,c(256*256,256,1)) #fastest
@@ -66,38 +67,41 @@ shinyServer(function(input, output,session) {
 #     used_colors=as.data.frame(floor(color_kmean$centers+0.5))
 #     
     palette=(sprintf("#%06x",used_colors$rgb))
-    pointlist$cluster=as.factor(unique_colors$cluster[(match(pointlist$rgb,unique_colors$rgb))])
+    pointlist$cluster=as.factor(unique_colors$cluster[match(pointlist$rgb,unique_colors$rgb)])
+    pointlist$cluster<-factor(pointlist$cluster,levels=used_colors$cluster,labels=used_colors$rgb)
+
+#b=factor(pointlist$cluster,levels=used_colors$cluster,labels=used_colors$rgb)
+
 
     #listcolors=apply(colors,1,merge_rgb)
-    print(used_colors)  
-    print(class(used_colors))
-    names=sprintf("%06x",used_colors$rgb)
-    #cb_options=list()
-    #cb_options[names]=seq(1:numcolors)
     cb_options=seq(1:numcolors)
-    names(cb_options)<-names
-    
-    #cb_options[["a"]]="a"
-    #cb_options[["b"]]="b"
+    names(cb_options)<-palette
     
     updateCheckboxGroupInput(session=session,"colors",choices=cb_options,selected=sprintf("%d",cb_options[2:numcolors]),inline=T)
     #numcolors
-    
-print("asdf")
+return(pointlist)
+})
 
   output$outplot<-renderPlot({
+      pointlist<-getpointlist()
+      
       colchoice=as.numeric(input$colors)
-      palette=(sprintf("#%06x",used_colors$rgb[colchoice]))
+      used_colors<-as.numeric(levels(pointlist$cluster))[colchoice]
+      #names(used_colors)<-c("rgb")
+      palette=(sprintf("#%06x",used_colors))
       downsample=20000
       newpoint_index=sample(seq(nrow(pointlist)),downsample)
       #newpointlist=pointlist[newpoint_index,]
       newpointlist=pointlist
-      p<-ggplot(newpointlist[newpointlist$cluster %in% colchoice,],aes(x,y,color=cluster),size=.01)+geom_point()+
+      p<-ggplot(newpointlist[newpointlist$cluster %in% used_colors,],aes(x,y,color=cluster),size=.01)+geom_point()+
         facet_wrap( ~ cluster)+
         scale_color_manual(values=palette)
       return(p)
     })
-  })
+output$noise=renderText({
+  
+  print("asdf")
+})
   
   
 
