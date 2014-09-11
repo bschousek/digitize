@@ -15,7 +15,7 @@ shinyServer(function(input, output,session) {
 
   output$inplot<-renderImage({
     fname=input$fname
-    if (is.null(fname)) {return(list(src="test",alt="Please select a file"))}
+    if (is.null(fname)) {return(list(src="images.jpg"))}
     list(src=fname$datapath,alt=fname)
   },deleteFile=FALSE)
   
@@ -31,7 +31,7 @@ shinyServer(function(input, output,session) {
     filename = function() { paste(input$fname, '.rda', sep='')}, 
     content = function(file) {
       pointlist=cutcolors()
-      colchoice=as.numeric(input$colors)
+      colchoice=input$colors
       used_colors<-levels(pointlist$cluster)[colchoice]
       data=pointlist[pointlist$cluster %in% used_colors,]
       data$cluster<-factor(data$cluster)
@@ -44,9 +44,12 @@ shinyServer(function(input, output,session) {
   getpointlist<-reactive({
     rgblist=c("r","g","b")
     fname=input$fname
-    if (is.null(fname)) {return(NULL)}
+    if (is.null(fname)) {
+        imsource=read.bitmap('images.jpg')
+    } else {
+        imsource=read.bitmap(fname$datapath)
+    }
     
-    imsource=read.bitmap(fname$datapath)
     imheight=dim(imsource)[1]
     imwidth=dim(imsource)[2]
     rgbt=dim(imsource)[3]
@@ -92,6 +95,7 @@ shinyServer(function(input, output,session) {
     pointlist<-getpointlist()
     color_cluster<-chunkcolors()
     
+    
     if (is.null(color_cluster)) {return(NULL)}
     if (is.null(pointlist)) {return(NULL)}
     unique_colors=pointlist[match(unique(pointlist$rgb),pointlist$rgb),]
@@ -102,39 +106,40 @@ shinyServer(function(input, output,session) {
     rgbdecimal=apply(centers[,rgblist],1,crossprod,c(256*256,256,1)) #fastest
     centers$rgb=rgbdecimal
     centers$rgb<-as.hexmode(centers$rgb)
-    #used_colors=as.data.frame(unique_colors$rgb[match(seq(numcolors),unique_colors$cluster)])
-    #  used_colors=as.data.frame(unique_colors[match(seq(numcolors),unique_colors$cluster),])
-  #     color_kmean=kmeans(unique_colors,numcolors)
-  #     unique_colors$cluster=color_kmean$cluster
-  #      
-  #     used_colors=as.data.frame(floor(color_kmean$centers+0.5))
-  #     
-      palette=(sprintf("%06x",centers$rgb))
-      pointlist$cluster=as.factor(unique_colors$cluster[match(pointlist$rgb,unique_colors$rgb)])
-      pointlist$cluster<-factor(pointlist$cluster,levels=centers$Group.1,labels=centers$rgb)
-      #levels(pointlist$cluster)<-as.hexmode(as.numeric(levels(pointlist$cluster)))
-  #pointlist$rgb<-as.factor(pointlist$rgb)#,levels=used_colors$cluster,labels=palette)
-  
-  #b=factor(pointlist$cluster,levels=used_colors$cluster,labels=used_colors$rgb)
-  
-  
-      #listcolors=apply(colors,1,merge_rgb)
-      cb_options=seq(1:numcolors)
-      names(cb_options)<-palette
+    palette=(sprintf("%06x",centers$rgb))
+    pointlist$cluster=as.factor(unique_colors$cluster[match(pointlist$rgb,unique_colors$rgb)])
+    pointlist$cluster<-factor(pointlist$cluster,levels=centers$Group.1,labels=centers$rgb)
+    pointlist$display<-pointlist$cluster %in% palette[2:numcolors]
+    cb_options=palette
+    names(cb_options)<-palette
       
-      updateCheckboxGroupInput(session=session,"colors",choices=cb_options,selected=sprintf("%d",cb_options[2:numcolors]),inline=T)
-    #numcolors
+    updateCheckboxGroupInput(session=session,"colors",choices=cb_options,selected=sprintf("%s",cb_options[2:numcolors]),inline=T)
+    #colchoice=as.numeric(input$colors)
+    
     
 return(pointlist)
 })
+#choose which colors to plot
+displaycolors<-reactive({
+    pointlist<-cutcolors()
+    colchoice=input$colors
+    #don't return a value if nothing clustered yet, or if the slider has changed and not yet
+    # updated the checkbox group.
+    if (is.null(colchoice) || !all(colchoice %in% levels(pointlist$cluster))){ return()}
+        
+    pointlist$display<-pointlist$cluster %in% colchoice
+    return(pointlist)
+})
+
+#finally plot them
 plotpoints<-reactive({
-  pointlist<-cutcolors()
+  pointlist<-displaycolors()
   if (is.null(pointlist))
     return (NULL)
-  colchoice=as.numeric(input$colors)
-  used_colors<-levels(pointlist$cluster)[colchoice]
+  used_colors<-levels(pointlist$cluster[pointlist$display==T])
   palette=(sprintf("#%s",used_colors))
-  p<-ggplot(pointlist[pointlist$cluster %in% used_colors,],aes(x,y,color=cluster),size=.01)+geom_point()+
+  
+  p<-ggplot(pointlist[pointlist$display==T,],aes(x,y,color=cluster),size=.01)+geom_point()+
     facet_wrap( ~ cluster)+
     scale_color_manual(values=palette)+
     theme(legend.position="none")
