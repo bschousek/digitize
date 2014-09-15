@@ -1,0 +1,15 @@
+# Instructions for Plot Digitizer
+
+---------------------
+
+#### This shiny app aids in reproducing collected data from plots which have been saved as images. Steps to use the program include:
+
+1) Upload a file using the  'choose file' button. The image can be uploaded from the local file system or from a URL. The preloaded example came from  the Python sympy documentation, found via a Google image search for 'plot' at (http://i.imgur.com/7P2zwmT.png)
+
+2) The right column will show the results of breaking the input image into its constituent colors as identified by the hclust function for hierarchical cluster analysis.<br>
+
+3) The level at which the cluster map is cut can be adjusted using the slider. Adjust the slider until the displayed plots include isolated versions of the data of interest.<br>
+
+4) The colors displayed can be turned on and off with the checkboxes under 'Colors to Display'. By default the most common color in the image (assumed to be the background color) is not displayed.
+
+5) Clicking the 'Download' button will save the data represented by the displayed plots as an R .rda file. This data can then be loaded into R and further analyzed.

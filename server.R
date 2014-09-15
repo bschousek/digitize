@@ -15,7 +15,7 @@ shinyServer(function(input, output,session) {
 
   output$inplot<-renderImage({
     fname=input$fname
-    if (is.null(fname)) {return(list(src="images.jpg"))}
+    if (is.null(fname)) {return(list(src="plot.png"))}
     list(src=fname$datapath,alt=fname)
   },deleteFile=FALSE)
   
@@ -45,7 +45,7 @@ shinyServer(function(input, output,session) {
     rgblist=c("r","g","b")
     fname=input$fname
     if (is.null(fname)) {
-        imsource=read.bitmap('images.jpg')
+        imsource=read.bitmap('plot.png')
     } else {
         imsource=read.bitmap(fname$datapath)
     }
@@ -142,7 +142,9 @@ plotpoints<-reactive({
   p<-ggplot(pointlist[pointlist$display==T,],aes(x,y,color=cluster),size=.01)+geom_point()+
     facet_wrap( ~ cluster)+
     scale_color_manual(values=palette)+
-    theme(legend.position="none")
+    theme(legend.position="none")+
+      ylab("")+xlab("")
+  #,axis.text.x=element_blank(),axis.text.y=element_blank())
     
   return(p)
   
