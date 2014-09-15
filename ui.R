@@ -18,8 +18,8 @@ shinyUI(pageWithSidebar(
     hr(style="color:dimgray;background-color:dimgray;height:.5em;border:none;"),
     h4("Save displayed plots as R data file"),
     downloadButton("saveresults"),
-    h6("Copyright 2014, Brian Schousek"),
-    h5("instructions",a("Link",href="http://./www/helpfile.html"))
+    h6("Copyright 2014, Brian Schousek")
+    
   ),
   
   mainPanel(
